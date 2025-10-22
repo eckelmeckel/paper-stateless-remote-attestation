@@ -1,0 +1,52 @@
+// Stateless Remote Attestation Protocol
+// 
+// Stateless verifier: no AD; device identity (EUI-64) is inside ciphertext.
+// Return path integrity: (unguarded / guarded) depending on build.
+// Attester signs ciphertext only; never learns plaintext.
+
+attacker[active]
+
+principal IoTGW[
+  knows private iotgw_attest_privkey
+  iotgw_attest_pubkey = G^iotgw_attest_privkey
+
+  // dummy symmetric key just to "rename" the ciphertext (optional)
+  knows private iotgw_dummy_key
+]
+IoTGW -> Verifier: [iotgw_attest_pubkey]
+
+principal Verifier[
+  knows private verifier_key
+  generates timestamp, nonce, eui64_iotgw
+  challenge_plain = CONCAT(timestamp, eui64_iotgw, nonce)
+  challenge_enc   = AEAD_ENC(verifier_key, challenge_plain, nil)
+]
+Verifier -> IoTGW: challenge_enc
+
+principal IoTGW[
+  // sign the ciphertext (stateless attester)
+  response_signature = SIGN(iotgw_attest_privkey, challenge_enc)
+
+  // optional: "re-encode to rename" trick
+  // to create a new top-level name (avoid re-receive warning)
+  challenge_enc_enc = ENC(iotgw_dummy_key, challenge_enc)
+  challenge_enc1    = DEC(iotgw_dummy_key, challenge_enc_enc)
+]
+IoTGW -> Verifier: challenge_enc1, response_signature
+
+principal Verifier[
+  // use the received ciphertext name (challenge_enc1), not challenge_enc
+  ok  = SIGNVERIF(iotgw_attest_pubkey, challenge_enc1, response_signature)?
+  msg = AEAD_DEC(verifier_key, challenge_enc1, nil)?
+  timestamp_rx, eui64_iotgw_rx, nonce_rx = SPLIT(msg)
+]
+
+queries[
+  confidentiality? challenge_plain
+  confidentiality? timestamp
+  confidentiality? timestamp_rx
+  confidentiality? eui64_iotgw
+  confidentiality? eui64_iotgw_rx
+  confidentiality? nonce
+  confidentiality? nonce_rx
+]

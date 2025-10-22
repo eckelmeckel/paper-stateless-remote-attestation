@@ -11,6 +11,7 @@ This repository contains the:
 * Benchmark results in folder [benchmark-results](./benchmark-results/)
 * Plots in folder [plots](./plots/)
 * R scripts to generate plots as `benchmark_plot.R` and `benchmark_plot_nrf9161.R`
+* Formal analysis using Verifpal in folder [formal-proof](./formal-proof/)
 
 Everything was tested under a Ubuntu 24.04 64-bit (amd64) operating system.
 
@@ -53,4 +54,10 @@ docker build -t 'me/stateless-ra-poc:1.5.3' . && docker run --rm -it --init 'me/
    ```
    for op in 'sign' 'verify' 'sphincs_sign'; do Rscript benchmark_plot.R "${op}"; done
    ```
+
+## Run the Formal Analysis (Verifpal)
+
+1. Install Verifpal following the instructions on their website: <https://verifpal.com/>
+
+2. Run the analysis with: `verifpal verify formal-proof/stateless-ra.vp`
 
